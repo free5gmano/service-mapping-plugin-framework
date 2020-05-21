@@ -27,7 +27,6 @@ class AllocateNSSIabc(metaclass=abc.ABCMeta):
                 self.content = json.loads(f.read())
 
     def check_feasibility(self):
-        #
         headers = {'Content-type': 'application/json'}
         url = self.NM_URL + 'GenericTemplate/{}'.format(
             self.parameter['vnf_template'])
@@ -96,7 +95,6 @@ class AllocateNSSIabc(metaclass=abc.ABCMeta):
 
     def create_moi(self):
         content = self.content
-        print(content)
         nm_url = self.NM_URL
         headers = {'Content-type': 'application/json', 'Connection': 'close'}
 
@@ -383,7 +381,16 @@ class AllocateNSSIabc(metaclass=abc.ABCMeta):
         return NotImplemented
 
     @abc.abstractmethod
+    def update_ns_instantiation(self, ns_instance_id, update_info):
+        return NotImplemented
+
+    @abc.abstractmethod
     def ns_instantiation(self, ns_descriptor_path):
+        # Should be assign 'nsinfo' parameter
+        return NotImplemented
+
+    @abc.abstractmethod
+    def scale_ns_instantiation(self, ns_instance_id, scale_info):
         # Should be assign 'nsinfo' parameter
         return NotImplemented
 
@@ -479,7 +486,6 @@ class AllocateNSSIabc(metaclass=abc.ABCMeta):
         url = self.NM_URL + "NetworkSliceSubnet/{}/".format(self.nssiId)
         get_moi = requests.get(url, params=payload, headers=settings.HEADERS)
         self.moi_config = get_moi.json()
-        print(self.moi_config)
         self.moi_config['nSSIId'] = \
             self.moi_config['attributeListOut'][0].pop('nssiId')
         if self.moi_config['attributeListOut'][0]['nsInfo']['vnfInstance']:
@@ -498,8 +504,14 @@ class AllocateNSSIabc(metaclass=abc.ABCMeta):
 
     def allocate_nssi(self):
         self.get_nsst()
-        self.create_moi()
-        self.nf_provisioning()
-        self.ns_instance_instantiation()
-        self.coordinate_tn_manager()
-        self.update_moi()
+        if self.parameter['use_existed']:
+            print('Modify procedure...')
+            self.check_feasibility()
+            self.update_moi()
+        else:
+            print('Create procedure...')
+            self.create_moi()
+            self.nf_provisioning()
+            self.ns_instance_instantiation()
+            self.coordinate_tn_manager()
+            self.update_moi()
