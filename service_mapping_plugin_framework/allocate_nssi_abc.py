@@ -339,7 +339,7 @@ class AllocateNSSIabc(metaclass=abc.ABCMeta):
             self.upload_ns_descriptor(ns_descriptor_path)
             # self.listen_on_ns_descriptor_subscriptions()
             self.create_ns_instance()
-            # self.create_ns_instance_subscriptions()
+            self.create_ns_instance_subscriptions()
             self.ns_instantiation(ns_descriptor_path)
             # self.listen_on_ns_instance_subscriptions()
             break

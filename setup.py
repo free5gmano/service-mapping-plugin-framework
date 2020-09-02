@@ -1,6 +1,6 @@
 from setuptools import setup
 
-setup(name='service-mapping-plugin-framework',
+setup(name='service_mapping_plugin_framework',
       version='1.0',
       description='Service Mapping Plug-in framework',
       url='http://github.com/free5gmano/service-mapping-plugin-framework',
