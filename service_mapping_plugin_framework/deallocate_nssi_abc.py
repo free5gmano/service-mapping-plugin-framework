@@ -103,7 +103,7 @@ class DeallocateNSSIabc(metaclass=abc.ABCMeta):
         data = {
             "modificationList": [
                 ["nsInfo", "operationalState", "administrativeState"],
-                ["", "administrativeState", "UNLOCKED"],
+                ["", "DISABLED", "UNLOCKED"],
                 "REPLACE"
             ]
         }
