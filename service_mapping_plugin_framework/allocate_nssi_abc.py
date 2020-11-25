@@ -19,9 +19,8 @@ class AllocateNSSIabc(metaclass=abc.ABCMeta):
         self.parameter = parameter
 
     def get_nsst(self):
-        print(os.path.join(settings.DATA_PATH, 'NRM', self.parameter['slice_template']))
-        for root, directory, file in os.walk(os.path.join(settings.DATA_PATH,
-                                                          'NRM', self.parameter['slice_template'])):
+        nrm_path = os.path.join(settings.DATA_PATH, 'NRM', self.parameter['slice_template'])
+        for root, directory, file in os.walk(nrm_path):
             # Assign sliceNrm.json attribute
             with open(os.path.join(root, file[0])) as f:
                 self.content = json.loads(f.read())
@@ -87,7 +86,6 @@ class AllocateNSSIabc(metaclass=abc.ABCMeta):
                 scale_info = {'type': "SCALE_OUT",
                               "vnf_instance_id": vnf_scale_list[vnf][2],
                               "replicas": vnf_scale_list[vnf][1]}
-                print(scale_info)
                 self.scale_ns_instantiation(ns_instance_id, scale_info)
 
         self.read_ns_instantiation(ns_instance_id)
@@ -95,13 +93,13 @@ class AllocateNSSIabc(metaclass=abc.ABCMeta):
 
     def create_moi(self):
         content = self.content
+        # print(content)
         nm_url = self.NM_URL
         headers = {'Content-type': 'application/json', 'Connection': 'close'}
 
         def sst():
             # Create SST MOI
             print('Create SST MOI')
-
             content_snssai = content['definitions']['SnssaiList']
             sst_value = content_snssai['sst']['value']
             url = nm_url + "SST/*/"
@@ -171,7 +169,7 @@ class AllocateNSSIabc(metaclass=abc.ABCMeta):
                     }
                 }
                 moi = requests.put(url, data=json.dumps(data), headers=headers)
-                print(moi.json())
+                # print(moi.json())
                 if moi.status_code in (200, 201):
                     return moi.json()['attributeListOut']
                 else:
@@ -226,7 +224,7 @@ class AllocateNSSIabc(metaclass=abc.ABCMeta):
                     "perfReqId": [kwargs['perfreq']['id']]
                 }
             }
-            print(data)
+            # print(data)
             moi = requests.put(url, data=json.dumps(data), headers=headers)
             # print(moi.json())
             if moi.status_code in (200, 201):
@@ -339,7 +337,7 @@ class AllocateNSSIabc(metaclass=abc.ABCMeta):
             self.upload_ns_descriptor(ns_descriptor_path)
             # self.listen_on_ns_descriptor_subscriptions()
             self.create_ns_instance()
-            self.create_ns_instance_subscriptions()
+            # self.create_ns_instance_subscriptions()
             self.ns_instantiation(ns_descriptor_path)
             # self.listen_on_ns_instance_subscriptions()
             break
@@ -457,7 +455,7 @@ class AllocateNSSIabc(metaclass=abc.ABCMeta):
                 "referenceObjectInstance": "",
                 "attributeListIn": self.nsinfo
             }
-            print(data)
+            # print(data)
             create_nsinfo_moi = requests.put(url, data=json.dumps(data), headers=settings.HEADERS)
             print('Create NsInfo moi status: {}'.format(create_nsinfo_moi.status_code))
 
@@ -486,6 +484,7 @@ class AllocateNSSIabc(metaclass=abc.ABCMeta):
         url = self.NM_URL + "NetworkSliceSubnet/{}/".format(self.nssiId)
         get_moi = requests.get(url, params=payload, headers=settings.HEADERS)
         self.moi_config = get_moi.json()
+        # print(self.moi_config)
         self.moi_config['nSSIId'] = \
             self.moi_config['attributeListOut'][0].pop('nssiId')
         if self.moi_config['attributeListOut'][0]['nsInfo']['vnfInstance']:
@@ -502,7 +501,7 @@ class AllocateNSSIabc(metaclass=abc.ABCMeta):
                 eval(self.moi_config['attributeListOut'][0]['nsInfo']['_links'])
         print("Slice MOI:", self.moi_config)
 
-    def allocate_nssi(self):
+    def allocate_nssi(self):  # TODO: if use existing nssi
         self.get_nsst()
         if self.parameter['use_existed']:
             print('Modify procedure...')
