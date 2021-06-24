@@ -17,6 +17,7 @@ class AllocateNSSIabc(metaclass=abc.ABCMeta):
         self.content = dict()
         self.moi_config = dict()
         self.parameter = parameter
+        self.headers = {'Content-type': 'application/json'}
 
     def get_nsst(self):
         nrm_path = os.path.join(settings.DATA_PATH, 'NRM', self.parameter['slice_template'])
@@ -26,10 +27,9 @@ class AllocateNSSIabc(metaclass=abc.ABCMeta):
                 self.content = json.loads(f.read())
 
     def check_feasibility(self):
-        headers = {'Content-type': 'application/json'}
         url = self.NM_URL + 'GenericTemplate/{}'.format(
             self.parameter['vnf_template'])
-        generic_template = requests.get(url, headers=headers)
+        generic_template = requests.get(url, headers=self.headers)
         moi = self.get_moi()
         ns_instance_id = moi.json()['attributeListOut'][0]['nsInfo']['id']
         ns_instance = self.read_ns_instantiation(ns_instance_id)
@@ -45,11 +45,9 @@ class AllocateNSSIabc(metaclass=abc.ABCMeta):
             product_name = vnf_config['node_templates']['VNF1']['properties']['product_name']
             replicas = vnf_config['node_templates']['VDU1']['attributes']['replicas']
 
-            # vnf_list = {'vnfd ID': ['vnf product name', 'vnf instance replicas']}
             vnf_list[descriptor_id] = [product_name.lower(), replicas]
 
         for vnf_instance in ns_instance.json()['vnfInstance']:
-            # vnf_instance_list = {'vnfd ID': ['vnf product name', 'vnf instance id']}
             vnf_instance_list[vnf_instance['vnfdId']] = [vnf_instance['vnfProductName'],
                                                          vnf_instance['id']]
         for element in vnf_list:
@@ -62,7 +60,6 @@ class AllocateNSSIabc(metaclass=abc.ABCMeta):
             if element not in vnf_list:
                 vnf_delete_list[element] = vnf_instance_list[element]
             else:
-                # {'vnfd ID': ['vnf product name', 'vnf instance replicas', 'vnf instance id']}
                 vnf_scale_list[element].append(vnf_instance_list[element][1])
 
         path = os.path.join(settings.DATA_PATH, 'VNF', self.parameter['vnf_template'])
@@ -86,6 +83,7 @@ class AllocateNSSIabc(metaclass=abc.ABCMeta):
                 scale_info = {'type': "SCALE_OUT",
                               "vnf_instance_id": vnf_scale_list[vnf][2],
                               "replicas": vnf_scale_list[vnf][1]}
+                print(scale_info)
                 self.scale_ns_instantiation(ns_instance_id, scale_info)
 
         self.read_ns_instantiation(ns_instance_id)
@@ -93,9 +91,7 @@ class AllocateNSSIabc(metaclass=abc.ABCMeta):
 
     def create_moi(self):
         content = self.content
-        # print(content)
         nm_url = self.NM_URL
-        headers = {'Content-type': 'application/json', 'Connection': 'close'}
 
         def sst():
             # Create SST MOI
@@ -106,7 +102,7 @@ class AllocateNSSIabc(metaclass=abc.ABCMeta):
             scope = ["BASE_NTH_LEVEL", 0]
             payload = {'scope': str(scope),
                        'filter': "value='{}'".format(sst_value)}
-            moi = requests.get(url, params=payload, headers=headers)
+            moi = requests.get(url, params=payload, headers=self.headers)
             if moi.json()['attributeListOut'].__len__() == 0:
                 data = {
                     "attributeListIn": {
@@ -115,7 +111,7 @@ class AllocateNSSIabc(metaclass=abc.ABCMeta):
                         "characteristics": content_snssai['sst']['characteristics']
                     }
                 }
-                moi = requests.put(url, data=json.dumps(data), headers=headers)
+                moi = requests.put(url, data=json.dumps(data), headers=self.headers)
                 if moi.status_code in (200, 201):
                     return moi.json()['attributeListOut']
                 else:
@@ -137,7 +133,7 @@ class AllocateNSSIabc(metaclass=abc.ABCMeta):
                     "sD": content['definitions']['SnssaiList']['sd']
                 }
             }
-            moi = requests.put(url, data=json.dumps(data), headers=headers)
+            moi = requests.put(url, data=json.dumps(data), headers=self.headers)
             if moi.status_code in (200, 201):
                 return moi.json()['attributeListOut']
             else:
@@ -158,7 +154,7 @@ class AllocateNSSIabc(metaclass=abc.ABCMeta):
             payload = {'scope': str(scope),
                        'filter': "pLMNId='{}'".format(
                            content_plmnid['mcc'] + content_plmnid['mnc'])}
-            moi = requests.get(url, params=payload, headers=headers)
+            moi = requests.get(url, params=payload, headers=self.headers)
             if moi.json()['attributeListOut'].__len__() == 0:
                 data = {
                     "attributeListIn": {
@@ -168,8 +164,7 @@ class AllocateNSSIabc(metaclass=abc.ABCMeta):
                         "MobileNetworkOperator": content_plmnid['operator']
                     }
                 }
-                moi = requests.put(url, data=json.dumps(data), headers=headers)
-                # print(moi.json())
+                moi = requests.put(url, data=json.dumps(data), headers=self.headers)
                 if moi.status_code in (200, 201):
                     return moi.json()['attributeListOut']
                 else:
@@ -201,7 +196,7 @@ class AllocateNSSIabc(metaclass=abc.ABCMeta):
                     "coverage": content_perfreq['coverage']
                 }
             }
-            moi = requests.put(url, data=json.dumps(data), headers=headers)
+            moi = requests.put(url, data=json.dumps(data), headers=self.headers)
             if moi.status_code in (200, 201):
                 return moi.json()['attributeListOut']
             else:
@@ -224,9 +219,7 @@ class AllocateNSSIabc(metaclass=abc.ABCMeta):
                     "perfReqId": [kwargs['perfreq']['id']]
                 }
             }
-            # print(data)
-            moi = requests.put(url, data=json.dumps(data), headers=headers)
-            # print(moi.json())
+            moi = requests.put(url, data=json.dumps(data), headers=self.headers)
             if moi.status_code in (200, 201):
                 return moi.json()['attributeListOut']
             else:
@@ -254,7 +247,7 @@ class AllocateNSSIabc(metaclass=abc.ABCMeta):
                     "sliceProfileList": [kwargs['profile']['id']]
                 }
             }
-            moi = requests.put(url, data=json.dumps(data), headers=headers)
+            moi = requests.put(url, data=json.dumps(data), headers=self.headers)
             if moi.status_code in (200, 201):
                 return moi
             else:
@@ -273,7 +266,7 @@ class AllocateNSSIabc(metaclass=abc.ABCMeta):
             url = nm_url + 'NetworkSliceSubnet/{}/'.format(kwargs['nssiId'])
             payload = {'scope': str(scope),
                        'filter': "nssiId='{}'".format(kwargs['nssiId'])}
-            moi = requests.get(url, params=payload, headers=headers)
+            moi = requests.get(url, params=payload, headers=self.headers)
             if moi.status_code in (200, 201):
                 return moi
             else:
@@ -296,11 +289,10 @@ class AllocateNSSIabc(metaclass=abc.ABCMeta):
     def get_moi(self):
         # Get MOI Configure
         print('NSSI:', self.parameter['use_existed'])
-        headers = {'Content-type': 'application/json', 'Connection': 'close'}
         scope = ["BASE_NTH_LEVEL", 1]
         url = self.NM_URL + 'NetworkSliceSubnet/{}/'.format(self.parameter['use_existed'])
         payload = {'scope': str(scope)}
-        moi = requests.get(url, params=payload, headers=headers)
+        moi = requests.get(url, params=payload, headers=self.headers)
         if moi.status_code in (200, 201):
             return moi
         else:
@@ -447,7 +439,7 @@ class AllocateNSSIabc(metaclass=abc.ABCMeta):
                     "REPLACE"
                 ]
             }
-            requests.patch(url, data=json.dumps(data), params=payload, headers=settings.HEADERS)
+            requests.patch(url, data=json.dumps(data), params=payload, headers=self.headers)
         else:
             # Create NsInfo MOI
             url = self.NM_URL + "NsInfo/*/"
@@ -455,8 +447,7 @@ class AllocateNSSIabc(metaclass=abc.ABCMeta):
                 "referenceObjectInstance": "",
                 "attributeListIn": self.nsinfo
             }
-            # print(data)
-            create_nsinfo_moi = requests.put(url, data=json.dumps(data), headers=settings.HEADERS)
+            create_nsinfo_moi = requests.put(url, data=json.dumps(data), headers=self.headers)
             print('Create NsInfo moi status: {}'.format(create_nsinfo_moi.status_code))
 
             # Modify Slice MOI
@@ -475,16 +466,15 @@ class AllocateNSSIabc(metaclass=abc.ABCMeta):
             }
             payload = {'scope': str(scope)}
             modify_moi = requests.patch(url, data=json.dumps(data),
-                                        params=payload, headers=settings.HEADERS)
+                                        params=payload, headers=self.headers)
             print("Modify MOI status: {}".format(modify_moi.status_code))
 
         # Reorganization Slice Response
         scope = ["BASE_NTH_LEVEL", 2]
         payload = {'scope': str(scope)}
         url = self.NM_URL + "NetworkSliceSubnet/{}/".format(self.nssiId)
-        get_moi = requests.get(url, params=payload, headers=settings.HEADERS)
+        get_moi = requests.get(url, params=payload, headers=self.headers)
         self.moi_config = get_moi.json()
-        # print(self.moi_config)
         self.moi_config['nSSIId'] = \
             self.moi_config['attributeListOut'][0].pop('nssiId')
         if self.moi_config['attributeListOut'][0]['nsInfo']['vnfInstance']:

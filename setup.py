@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='service_mapping_plugin_framework',
-      version='1.2',
+      version='1.3',
       description='Service Mapping Plug-in framework',
       url='http://github.com/free5gmano/service-mapping-plugin-framework',
       author='free5gmano',
